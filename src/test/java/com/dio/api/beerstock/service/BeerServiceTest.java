@@ -13,13 +13,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class BeerServiceTest {
@@ -80,5 +81,39 @@ public class BeerServiceTest {
         assertThrows(BeerNotFoundException.class, () -> beerService.findByName((expectedFoundBeertDTO.getName())));
     }
 
+    @Test
+    void whenListBeerIsCalledThenReturnAListOfBeers() {
+        BeerDTO expectedFoundBeertDTO = BeerDTOBuilder.builder().build().toBeerDTO();
+        Beer expectedFoundBeer = beerMapper.toModel(expectedFoundBeertDTO);
 
+        when(beerRepository.findAll()).thenReturn(Collections.singletonList(expectedFoundBeer));
+
+        List<BeerDTO> foundListBeerDTO = beerService.listAll();
+
+        assertThat(foundListBeerDTO, is(not(empty())));
+        assertThat(foundListBeerDTO.get(0), is(equalTo(expectedFoundBeertDTO)));
+    }
+
+    @Test
+    void whenListBeerIsCalledThenReturnAnEmptyList() {
+        when(beerRepository.findAll()).thenReturn(Collections.EMPTY_LIST);
+
+        List<BeerDTO> foundListBeersDTO = beerService.listAll();
+
+        assertThat(foundListBeersDTO, is(empty()));
+    }
+
+    @Test
+    void whenExclusionIsCalledWithValidIdThenABeerShouldBeDeleted() throws BeerNotFoundException {
+        BeerDTO expectedDeletedBeertDTO = BeerDTOBuilder.builder().build().toBeerDTO();
+        Beer expecteddeletedBeer = beerMapper.toModel(expectedDeletedBeertDTO);
+
+        when(beerRepository.findById(expectedDeletedBeertDTO.getId())).thenReturn(Optional.of(expecteddeletedBeer));
+        doNothing().when(beerRepository).deleteById(expectedDeletedBeertDTO.getId());
+
+        beerService.deleteById(expectedDeletedBeertDTO.getId());
+
+        verify(beerRepository, times(1)).findById(expectedDeletedBeertDTO.getId());
+        verify(beerRepository, times(1)).deleteById(expectedDeletedBeertDTO.getId());
+    }
 }
